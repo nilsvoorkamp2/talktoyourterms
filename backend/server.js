@@ -37,6 +37,23 @@ app.use('/api/', limiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/analysis', analysisRoutes);
 
+// Root page for quick browser check
+app.get('/', (req, res) => {
+  res.send(`
+    <html>
+      <head><title>Talk to Your Terms API</title></head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; line-height:1.6; padding:24px;">
+        <h1>Talk to Your Terms — API</h1>
+        <p>Server is running. Use the API endpoints under <code>/api/</code>.</p>
+        <ul>
+          <li><a href="/health">/health</a> — health check (JSON)</li>
+          <li>/api/analysis — analysis endpoints (POST)</li>
+        </ul>
+      </body>
+    </html>
+  `);
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
