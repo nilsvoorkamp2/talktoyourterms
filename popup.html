@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talk to your Terms</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
+  <script src="pdfjs.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Authentication Section -->
+    <div id="auth-section" class="auth-section">
+      <div class="setup-content">
+        <div class="logo">
+          <img src="icons/icon32.png" alt="Logo" width="32" height="32">
+        </div>
+        <h1>Talk to your Terms</h1>
+        <p class="setup-description">Sign in to analyze terms of service with AI</p>
+
+        <!-- Login Form -->
+        <div id="login-form">
+          <div class="input-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" placeholder="you@example.com">
+          </div>
+
+          <div class="input-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="••••••••">
+          </div>
+
+          <button id="login-btn" class="btn btn-primary">Sign In</button>
+
+          <p class="auth-switch">
+            Don't have an account? <a href="#" id="show-signup">Sign up</a>
+          </p>
+        </div>
+
+        <!-- Signup Form -->
+        <div id="signup-form" style="display: none;">
+          <div class="input-group">
+            <label for="signup-email">Email</label>
+            <input type="email" id="signup-email" placeholder="you@example.com">
+          </div>
+
+          <div class="input-group">
+            <label for="signup-password">Password</label>
+            <input type="password" id="signup-password" placeholder="At least 8 characters">
+          </div>
+
+          <div class="input-group">
+            <label for="signup-password-confirm">Confirm Password</label>
+            <input type="password" id="signup-password-confirm" placeholder="Re-enter password">
+          </div>
+
+          <button id="signup-btn" class="btn btn-primary">Create Account</button>
+
+          <p class="auth-switch">
+            Already have an account? <a href="#" id="show-login">Sign in</a>
+          </p>
+        </div>
+
+        <div id="auth-error" class="auth-error" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- Main Interface -->
+    <div id="main-section" class="main-section" style="display: none;">
+      <header class="header">
+        <div class="header-left">
+          <img src="icons/icon24.png" alt="Logo" width="24" height="24">
+          <h2>Talk to your Terms</h2>
+        </div>
+        <div class="header-right">
+          <button id="minimize-btn" class="icon-btn" title="Minimize (closes popup so you can read the page)" style="display: none;">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 10h12"/>
+            </svg>
+          </button>
+          <button id="model-btn" class="icon-btn" title="Select AI Model">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+              <path d="M10 2l3 3m-6 0l3-3m0 6h6M4 8h12m-10 6l3 3m-6 0l3-3m8-6l-3 3m6 0l-3-3"/>
+            </svg>
+          </button>
+          <button id="settings-btn" class="icon-btn" title="Logout" style="display: none;">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+              <circle cx="10" cy="10" r="3"/>
+              <path d="M10 1v2m0 14v2M3.93 3.93l1.41 1.41m9.9 9.9l1.41 1.41M1 10h2m14 0h2M3.93 16.07l1.41-1.41m9.9-9.9l1.41-1.41"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Model Selection Modal -->
+      <div id="model-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Select AI Model</h3>
+            <button id="close-model-btn" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p class="modal-description">Choose an AI model for analysis. Different models have different speeds and capabilities.</p>
+            
+            <div class="model-section">
+              <h4>Recommended (Works with all API tiers)</h4>
+              <div class="model-options">
+                <label class="model-option">
+                  <input type="radio" name="model" value="claude-3-haiku-20240307" checked>
+                  <div class="model-info">
+                    <div class="model-name">Claude 3 Haiku</div>
+                    <div class="model-details">Fast, affordable, and compatible with all Anthropic API tiers</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="model-section">
+              <h4>Premium Models (If available with your API tier)</h4>
+              <div class="model-options">
+                <label class="model-option">
+                  <input type="radio" name="model" value="claude-3-opus-20240229">
+                  <div class="model-info">
+                    <div class="model-name">Claude 3 Opus</div>
+                    <div class="model-details">Most intelligent. Best for complex legal analysis. Requires higher API tier.</div>
+                  </div>
+                </label>
+                <label class="model-option">
+                  <input type="radio" name="model" value="claude-3-sonnet-20240229">
+                  <div class="model-info">
+                    <div class="model-name">Claude 3 Sonnet</div>
+                    <div class="model-details">Good balance. Requires higher API tier.</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="save-model-btn" class="btn btn-primary">Save & Close</button>
+          </div>
+        </div>
+      </div>
+      <div id="model-modal-overlay" class="modal-overlay" style="display: none;"></div>
+
+      <div class="content">
+        <!-- Initial State -->
+        <div id="initial-state" class="initial-state">
+          <button id="analyze-btn" class="btn btn-primary">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="8" cy="8" r="6"/>
+              <path d="M14 14l4 4"/>
+            </svg>
+            Analyze Current Page
+          </button>
+          <p class="hint">Analyze terms of service from the current page</p>
+
+          <div class="divider">
+            <span>or</span>
+          </div>
+
+          <div class="upload-section">
+            <input type="file" id="file-input" accept=".pdf,.txt" style="display: none;">
+            <button id="upload-btn" class="btn btn-secondary">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 17v2h14v-2M10 2v12m0-12l-4 4m4-4l4 4"/>
+              </svg>
+              Upload PDF or Text File
+            </button>
+            <p class="hint">Supports PDF and TXT files</p>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading-state" style="display: none;">
+          <div class="spinner"></div>
+          <p id="loading-text">Analyzing terms of service...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="error-state" style="display: none;">
+          <div class="error-icon">⚠</div>
+          <p id="error-message"></p>
+          <button id="retry-btn" class="btn btn-secondary">Try Again</button>
+        </div>
+
+        <!-- Results -->
+        <div id="result" class="result-container" style="display: none;">
+          <!-- Summary Section -->
+          <div class="summary-section">
+            <h3>Summary</h3>
+            <div class="message assistant">
+              <div class="message-content" id="summary-content"></div>
+            </div>
+          </div>
+
+          <!-- Q&A Section -->
+          <div class="qa-section">
+            <h3>Talk to your Terms</h3>
+            <p class="hint" style="margin-bottom: 16px;">💬 Ask any questions about these terms and conditions</p>
+
+            <div id="qa-history" class="qa-history"></div>
+
+            <div class="input-container">
+              <textarea
+                id="question-input"
+                placeholder="e.g., Can I cancel anytime? Do they share my data?"
+                rows="2"
+              ></textarea>
+              <button id="ask-btn" class="btn btn-primary btn-icon" title="Send">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2 3l16 7-16 7V3zm0 7l8-1-8-1v2z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="actions">
+            <button id="copy-btn" class="btn btn-secondary btn-small">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="5" y="5" width="10" height="10" rx="1"/>
+                <path d="M3 3h10v2H3V3z"/>
+              </svg>
+              Copy Summary
+            </button>
+            <button id="new-analysis-btn" class="btn btn-secondary btn-small">New Analysis</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
