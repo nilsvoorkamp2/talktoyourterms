@@ -50,6 +50,17 @@ const qaHistory = document.getElementById('qa-history');
 const questionInput = document.getElementById('question-input');
 const askBtn = document.getElementById('ask-btn');
 
+// Feedback elements
+const stars = document.querySelectorAll('.star');
+const ratingText = document.getElementById('rating-text');
+const feedbackInput = document.getElementById('feedback-input');
+const submitFeedbackBtn = document.getElementById('submit-feedback-btn');
+const feedbackStatus = document.getElementById('feedback-status');
+
+// State for feedback
+let currentRating = 0;
+let lastAnalyzedUrl = '';
+
 // Initialize
 async function init() {
   // Load saved model preference
@@ -101,6 +112,14 @@ async function init() {
   copyBtn.addEventListener('click', handleCopy);
   newAnalysisBtn.addEventListener('click', handleNewAnalysis);
   askBtn.addEventListener('click', handleAskQuestion);
+
+  // Feedback event listeners
+  stars.forEach(star => {
+    star.addEventListener('click', (e) => handleStarClick(e.target));
+    star.addEventListener('mouseover', (e) => handleStarHover(e.target));
+  });
+  document.querySelector('.stars').addEventListener('mouseout', resetStarHover);
+  submitFeedbackBtn.addEventListener('click', handleSubmitFeedback);
 
   // Enter key handling
   loginPassword.addEventListener('keydown', (e) => {
@@ -455,6 +474,22 @@ function displayResults(summary) {
   summaryContent.textContent = summary;
   qaHistory.innerHTML = '';
 
+  // Get current tab URL for feedback
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]) {
+      lastAnalyzedUrl = tabs[0].url;
+    }
+  });
+
+  // Reset feedback form
+  currentRating = 0;
+  feedbackInput.value = '';
+  ratingText.style.display = 'none';
+  feedbackStatus.textContent = '';
+  feedbackStatus.className = '';
+  updateStarDisplay();
+  submitFeedbackBtn.disabled = false;
+
   // Save analysis
   chrome.storage.local.set({
     lastAnalysis: {
@@ -643,6 +678,111 @@ async function extractTextFromPDF(file) {
       reject(new Error('Failed to extract text from PDF: ' + error.message));
     }
   });
+}
+
+// ===== Feedback Handlers =====
+
+const ratingLabels = {
+  1: '👎 Poor',
+  2: '😐 Fair',
+  3: '👍 Good',
+  4: '😊 Very Good',
+  5: '⭐ Excellent'
+};
+
+function handleStarClick(star) {
+  const rating = parseInt(star.dataset.rating);
+  currentRating = rating;
+  updateStarDisplay();
+  ratingText.textContent = ratingLabels[rating];
+  ratingText.style.display = 'inline-block';
+}
+
+function handleStarHover(star) {
+  const rating = parseInt(star.dataset.rating);
+  stars.forEach((s, index) => {
+    if (index < rating) {
+      s.style.color = 'var(--primary)';
+    } else {
+      s.style.color = '#D1D5DB';
+    }
+  });
+}
+
+function resetStarHover() {
+  updateStarDisplay();
+}
+
+function updateStarDisplay() {
+  stars.forEach((s, index) => {
+    if (index < currentRating) {
+      s.classList.add('selected');
+      s.style.color = 'var(--primary)';
+    } else {
+      s.classList.remove('selected');
+      s.style.color = '#D1D5DB';
+    }
+  });
+}
+
+async function handleSubmitFeedback() {
+  if (currentRating === 0) {
+    showFeedbackError('Please select a rating');
+    return;
+  }
+
+  submitFeedbackBtn.disabled = true;
+  feedbackStatus.textContent = 'Sending feedback...';
+  feedbackStatus.className = '';
+
+  try {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/api/analysis/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tosUrl: lastAnalyzedUrl || null,
+        tosText: currentTosText,
+        summary: summaryContent.textContent,
+        rating: currentRating,
+        feedback: feedbackInput.value || null,
+        corrections: null,
+        model: selectedModel,
+        source: 'web'
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to submit feedback');
+    }
+
+    const data = await response.json();
+    showFeedbackSuccess('Thank you! Your feedback helps improve the AI model.');
+    
+    // Reset form
+    setTimeout(() => {
+      currentRating = 0;
+      feedbackInput.value = '';
+      ratingText.style.display = 'none';
+      updateStarDisplay();
+      feedbackStatus.textContent = '';
+      submitFeedbackBtn.disabled = false;
+    }, 2000);
+  } catch (error) {
+    console.error('Feedback submission error:', error);
+    showFeedbackError('Failed to submit feedback: ' + error.message);
+    submitFeedbackBtn.disabled = false;
+  }
+}
+
+function showFeedbackSuccess(message) {
+  feedbackStatus.textContent = message;
+  feedbackStatus.className = 'success';
+}
+
+function showFeedbackError(message) {
+  feedbackStatus.textContent = message;
+  feedbackStatus.className = 'error';
 }
 
 // Initialize on load

@@ -158,4 +158,128 @@ router.get('/usage', async (req, res) => {
   }
 });
 
+// Store feedback for training data collection
+router.post('/feedback', async (req, res) => {
+  try {
+    const { tosUrl, tosText, summary, rating, feedback, corrections, model, source } = req.body;
+    const userId = req.user.userId || req.user.sessionId;
+
+    if (!tosText || !summary || !rating) {
+      return res.status(400).json({ error: 'tosText, summary, and rating are required' });
+    }
+
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    }
+
+    // Store feedback in database
+    const result = await db.run(
+      `INSERT INTO feedback (user_id, tos_url, tos_text, original_summary, rating, user_feedback, user_corrections, model_used, source)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId,
+        tosUrl || null,
+        tosText,
+        summary,
+        rating,
+        feedback || null,
+        corrections || null,
+        model || 'claude-3-haiku-20240307',
+        source || 'web'
+      ]
+    );
+
+    res.json({
+      success: true,
+      feedbackId: result.id,
+      message: 'Feedback received. Thank you for helping improve the model!'
+    });
+  } catch (error) {
+    console.error('Feedback submission error:', error);
+    res.status(500).json({ error: 'Failed to save feedback: ' + error.message });
+  }
+});
+
+// Get feedback for analysis (admin endpoint)
+router.get('/feedback', async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.sessionId;
+    
+    // Check if user is admin (optional - you can add admin table later)
+    const { rating, limit = 50, offset = 0 } = req.query;
+
+    let query = 'SELECT * FROM feedback WHERE 1=1';
+    const params = [];
+
+    if (rating) {
+      query += ' AND rating = ?';
+      params.push(parseInt(rating));
+    }
+
+    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    params.push(parseInt(limit), parseInt(offset));
+
+    const feedbackData = await db.all(query, params);
+    
+    // Get total count
+    const countResult = await db.get(
+      'SELECT COUNT(*) as total FROM feedback' + (rating ? ' WHERE rating = ?' : ''),
+      rating ? [parseInt(rating)] : []
+    );
+
+    res.json({
+      feedback: feedbackData,
+      total: countResult.total,
+      offset: parseInt(offset),
+      limit: parseInt(limit)
+    });
+  } catch (error) {
+    console.error('Feedback retrieval error:', error);
+    res.status(500).json({ error: 'Failed to retrieve feedback: ' + error.message });
+  }
+});
+
+// Get feedback statistics
+router.get('/feedback/stats', async (req, res) => {
+  try {
+    // Get rating distribution
+    const stats = await db.all(`
+      SELECT 
+        rating,
+        COUNT(*) as count,
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM feedback), 2) as percentage
+      FROM feedback
+      GROUP BY rating
+      ORDER BY rating DESC
+    `);
+
+    // Get average rating
+    const avgResult = await db.get(`
+      SELECT 
+        ROUND(AVG(rating), 2) as average_rating,
+        COUNT(*) as total_feedback
+      FROM feedback
+    `);
+
+    // Get feedback by source
+    const sourceStats = await db.all(`
+      SELECT 
+        source,
+        COUNT(*) as count
+      FROM feedback
+      GROUP BY source
+    `);
+
+    res.json({
+      rating_distribution: stats,
+      average_rating: avgResult.average_rating || 0,
+      total_feedback: avgResult.total_feedback || 0,
+      by_source: sourceStats
+    });
+  } catch (error) {
+    console.error('Feedback stats error:', error);
+    res.status(500).json({ error: 'Failed to get statistics: ' + error.message });
+  }
+});
+
 module.exports = router;

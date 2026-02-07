@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -22,6 +23,9 @@ app.use(cors({
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 
+// Serve static files (for admin dashboard)
+app.use(express.static(path.join(__dirname)));
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
@@ -37,6 +41,11 @@ app.use('/api/', limiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/analysis', analysisRoutes);
 
+// Dashboard route
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+});
+
 // Root page for quick browser check
 app.get('/', (req, res) => {
   res.send(`
@@ -47,6 +56,7 @@ app.get('/', (req, res) => {
         <p>Server is running. Use the API endpoints under <code>/api/</code>.</p>
         <ul>
           <li><a href="/health">/health</a> — health check (JSON)</li>
+          <li><a href="/dashboard">/dashboard</a> — feedback dashboard</li>
           <li>/api/analysis — analysis endpoints (POST)</li>
         </ul>
       </body>

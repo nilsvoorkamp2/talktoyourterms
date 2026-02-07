@@ -215,6 +215,42 @@
             </div>
           </div>
 
+          <!-- Feedback Section -->
+          <div class="feedback-section">
+            <h3>Help Improve AI</h3>
+            <p class="hint" style="margin-bottom: 16px;">⭐ Rate this summary and share your feedback</p>
+
+            <!-- Star Rating -->
+            <div class="rating-container">
+              <div class="stars">
+                <button class="star" data-rating="1" title="Poor">★</button>
+                <button class="star" data-rating="2" title="Fair">★</button>
+                <button class="star" data-rating="3" title="Good">★</button>
+                <button class="star" data-rating="4" title="Very Good">★</button>
+                <button class="star" data-rating="5" title="Excellent">★</button>
+              </div>
+              <span id="rating-text" class="rating-text" style="display: none;"></span>
+            </div>
+
+            <!-- Feedback Text -->
+            <div style="margin-top: 12px;">
+              <textarea
+                id="feedback-input"
+                placeholder="Optional: What could be improved? Any missing information?"
+                rows="2"
+                style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 13px; resize: vertical;"
+              ></textarea>
+            </div>
+
+            <!-- Submission Button -->
+            <div style="margin-top: 12px;">
+              <button id="submit-feedback-btn" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                Submit Feedback
+              </button>
+              <div id="feedback-status" style="margin-top: 8px; font-size: 12px; text-align: center;"></div>
+            </div>
+          </div>
+
           <!-- Actions -->
           <div class="actions">
             <button id="copy-btn" class="btn btn-secondary btn-small">
